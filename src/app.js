@@ -1,5 +1,4 @@
-const sourceUrl = 'https://raw.githubusercontent.com/IFMUN/flightcodex/af5c5a0fec7f25d1c07ab4c5970da2d90cbb3788/src/app.js';
-const response = await fetch(sourceUrl, { cache: 'no-store' });
+const response = await fetch('./src/app-core.js', { cache: 'no-store' });
 if (!response.ok) throw new Error('Unable to load simulator core');
 let source = await response.text();
 source = source.replace(
