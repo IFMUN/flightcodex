@@ -8,13 +8,15 @@ A self-contained browser flight scene for a Yosemite-scale valley simulation. It
 - Six placed waterfall systems: Yosemite Falls, Bridalveil Fall, Vernal Fall, Nevada Fall, Ribbon Fall, and Sentinel Fall.
 - Custom animated waterfall shader ribbons with mist and pools.
 - Procedural forest classification with a 266,000-tree cinematic mode and a lighter balanced mode.
-- 737 MAX 9-scale aircraft geometry using real-world approximate length, wingspan, height, mass, wing area, and thrust values.
+- More detailed 737 MAX 9-scale aircraft geometry with passenger windows, cockpit glazing, doors, winglets, flaps, slats, fan blades, nacelles, animated gear, nav lights, and damage marks.
 - Keyboard-paired flight controls with throttle, elevator, aileron, rudder, flaps, trim, brakes, camera modes, time of day, weather, and landing gear.
+- A more forgiving fly-by-wire assist so the aircraft starts on a stable approach and controls respond before the runway.
 - Dynamic sky states from dawn through night.
-- Weather modes for clear air, snow, aurora, storm, and hurricane-force winds.
-- Wind, gust, shear, turbulence, lift, drag, stall, gear drag, flap lift, braking, and collision handling in the flight model.
+- Weather modes for clear air, snow, aurora, storm, lightning, and hurricane-force winds.
+- Lightning strikes that can hit the aircraft, damage individual parts, reduce lift/control margin, and create a red edge warning vignette.
+- Wind, gust, shear, turbulence, lift, drag, stall, gear drag, flap lift, braking, landing, crash, and damage handling in the flight model.
 - Persistent crash fires and landing markers saved in browser local storage so previous attempts remain visible when another airframe is spawned.
-- Glass/liquid HUD surfaces using backdrop filtering, refractive highlights, and animated sweep layers.
+- Glass/liquid HUD surfaces using backdrop filtering, refractive highlights, animated sweep layers, and a corner airframe damage schematic.
 
 ## Controls
 
@@ -22,7 +24,8 @@ A self-contained browser flight scene for a Yosemite-scale valley simulation. It
 | --- | --- |
 | Enter / Open Flight Scene | Start |
 | W / S | Throttle up / down |
-| Arrow keys | Pitch and roll |
+| Arrow up / down | Pitch up / down |
+| Arrow left / right | Roll left / right |
 | A / D | Rudder yaw |
 | G | Landing gear handle |
 | F / V | Flaps up / down cycle |
@@ -32,6 +35,7 @@ A self-contained browser flight scene for a Yosemite-scale valley simulation. It
 | C | Camera mode |
 | T | Time of day cycle |
 | M | Weather cycle |
+| L | Lightning weather mode |
 | 1-5 | Dawn, noon, golden, dusk, night |
 
 ## Accuracy notes
