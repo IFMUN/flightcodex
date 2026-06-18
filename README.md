@@ -10,7 +10,8 @@ A self-contained browser flight scene for a Yosemite-scale valley simulation. It
 - Procedural forest classification with a 266,000-tree cinematic mode and a lighter balanced mode.
 - More detailed 737 MAX 9-scale aircraft geometry with passenger windows, cockpit glazing, doors, winglets, flaps, slats, fan blades, nacelles, animated gear, nav lights, and damage marks.
 - Preflight pilot selection for Cursor or Full Keyboard before the aircraft starts flying.
-- Cursor pilot mode steers heading only by banking and yawing toward the pointer, while pitch remains stabilized by trim instead of pointer height.
+- Cursor pilot mode uses horizontal pointer aim for heading only; pointer height is banned from pitch control.
+- Cursor turns include only a tiny non-directional pitch hold/protection assist, so direction changes do not rely on climbing or diving.
 - A thrust slider with an 82% starting thrust, plus keyboard throttle controls for in-flight adjustments.
 - Keyboard-paired elevator, aileron, rudder, flaps, trim, brakes, camera modes, time of day, weather, and landing gear.
 - A more forgiving fly-by-wire assist so the aircraft starts higher, steadier, and less prone to immediate terrain impact.
@@ -32,7 +33,7 @@ A self-contained browser flight scene for a Yosemite-scale valley simulation. It
 | Enter / Open Flight Scene | Start after a pilot mode is selected |
 | Thrust slider | Set starting and in-flight thrust |
 | W / S | Throttle up / down |
-| Cursor / pointer | Aim heading in Cursor mode without changing pitch |
+| Cursor / pointer | Aim heading in Cursor mode; vertical pointer movement cannot command pitch |
 | Arrow up / down | Pitch up / down in Full Keyboard mode |
 | Arrow left / right | Roll left / right in Full Keyboard mode |
 | A / D | Rudder yaw in Full Keyboard mode |
