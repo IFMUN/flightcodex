@@ -1,1 +1,104 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Yosemite Flight Codex</title><link rel="stylesheet" href="/src/styles.css"></head><body><div id="app"><section class="home"><div class="aurora"></div><div class="hero glass"><p class="eyebrow">NASA elevation inspired • procedural forests • persistent attempts</p><h1>Yosemite Flight Codex</h1><p>Open a to-scale playable 3D Yosemite valley with cliff-brink waterfalls, 266k classified forest pixels, dynamic sky, aircraft physics, and a glass liquid UI that bends the world behind it.</p><button id="open">Open 3D diagram</button><div class="rings"><i></i><i></i><i></i></div></div></section></div><script type="module" src="/src/main.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#071015" />
+    <title>Yosemite Flight Lab</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+    <link rel="stylesheet" href="./src/styles.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <canvas id="scene" aria-label="Yosemite flight simulation"></canvas>
+
+    <main id="launch" class="launch">
+      <section class="hero" aria-labelledby="title">
+        <h1 id="title">Yosemite Flight Lab</h1>
+        <p>Scale terrain, landmark waterfalls, procedural forest, dynamic weather, and a 737 MAX 9-size airframe in one live browser scene.</p>
+        <div class="launch-actions">
+          <button id="startButton" class="primary-button" type="button">Open Flight Scene</button>
+          <div class="hint">Remote branch build</div>
+        </div>
+        <div class="topo" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </section>
+    </main>
+
+    <section id="hud" class="hud" aria-label="Flight instruments">
+      <div class="panel instruments">
+        <div class="metrics">
+          <div class="metric"><span>IAS</span><strong id="airspeed">0</strong><em>kt</em></div>
+          <div class="metric"><span>AGL</span><strong id="altitude">0</strong><em>ft</em></div>
+          <div class="metric"><span>VSI</span><strong id="vsi">0</strong><em>ft/min</em></div>
+        </div>
+      </div>
+
+      <div class="panel systems">
+        <div class="stack"><label>Throttle</label><strong id="throttle">62%</strong></div>
+        <div class="stack"><label>Gear</label><strong id="gearState">DOWN LOCKED</strong></div>
+        <div class="stack"><label>Flaps</label><strong id="flapsValue">10 deg</strong></div>
+        <div class="stack"><label>Wind</label><strong id="windValue">0 kt</strong></div>
+        <div class="stack"><label>Weather</label><strong id="weatherValue">Clear</strong></div>
+        <div class="stack"><label>Forest</label><strong id="forestValue">112,000 / 266,000</strong></div>
+        <div class="segment" aria-label="Weather">
+          <button type="button" data-weather="clear">Clear</button>
+          <button type="button" data-weather="snow">Snow</button>
+          <button type="button" data-weather="aurora">Aurora</button>
+          <button type="button" data-weather="storm">Storm</button>
+          <button type="button" data-weather="hurricane">Hurricane</button>
+        </div>
+        <div class="segment" aria-label="Time of day">
+          <button type="button" data-time="dawn">Dawn</button>
+          <button type="button" data-time="noon">Noon</button>
+          <button type="button" data-time="golden">Gold</button>
+          <button type="button" data-time="dusk">Dusk</button>
+          <button type="button" data-time="night">Night</button>
+        </div>
+        <div class="segment" aria-label="Quality">
+          <button id="qualityToggle" class="icon-button" type="button">Balanced</button>
+        </div>
+      </div>
+
+      <div class="panel attempts">
+        <h2>Persistent Attempts</h2>
+        <ul id="attemptsList"></ul>
+      </div>
+
+      <div class="panel status">
+        <div id="systemMessage" class="system-message">Scene warming</div>
+        <div id="readout" class="readout">0 fps | chase | trim 0.00</div>
+      </div>
+
+      <div class="keyboard" aria-hidden="true">
+        <span class="key">W</span>
+        <span class="key">S</span>
+        <span class="key">A</span>
+        <span class="key">D</span>
+        <span class="key">G</span>
+        <span class="key">F</span>
+        <span class="key">V</span>
+        <span class="key">B</span>
+        <span class="key">R</span>
+        <span class="key">C</span>
+        <span class="key">T</span>
+        <span class="key">M</span>
+        <span class="key">[ ]</span>
+      </div>
+    </section>
+
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
