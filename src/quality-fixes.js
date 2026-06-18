@@ -1,6 +1,7 @@
 installQualityFixes();
 
 const qualityAttemptMarkers = [];
+let qualityTrackingNewAttempt = false;
 const qualityBaseLaunch = launch;
 const qualityBaseUpdateHud = updateHud;
 const qualityBaseHandleGroundContact = handleGroundContact;
@@ -30,7 +31,9 @@ createAttemptMarker = function createTrackedAttemptMarker(item) {
   const before = new Set(scene.children);
   qualityBaseCreateAttemptMarker(item);
   const added = scene.children.filter((child) => !before.has(child));
-  if (added.length) qualityAttemptMarkers.unshift(added);
+  if (!added.length) return;
+  if (qualityTrackingNewAttempt) qualityAttemptMarkers.unshift(added);
+  else qualityAttemptMarkers.push(added);
 };
 
 recordAttempt = function recordAttemptSafely(type, airspeed, note) {
@@ -53,7 +56,9 @@ recordAttempt = function recordAttemptSafely(type, airspeed, note) {
   } catch (error) {
     ui.message.textContent = 'Attempt saved for this session, but browser storage is unavailable.';
   }
+  qualityTrackingNewAttempt = true;
   createAttemptMarker(item);
+  qualityTrackingNewAttempt = false;
   updateAttemptPanel();
 };
 
