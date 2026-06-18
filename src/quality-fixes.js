@@ -1,11 +1,13 @@
 installQualityFixes();
 
+const qualityAttemptMarkers = [];
 const qualityBaseLaunch = launch;
 const qualityBaseUpdateHud = updateHud;
 const qualityBaseHandleGroundContact = handleGroundContact;
 const qualityBaseApplyWeather = applyWeather;
 const qualityBaseApplyTime = applyTime;
 const qualityBaseUpdateCursorAim = updateCursorAim;
+const qualityBaseCreateAttemptMarker = createAttemptMarker;
 
 launch = function launchWithQualityFixes() {
   qualityBaseLaunch();
@@ -22,6 +24,37 @@ applyWeather = function applyWeatherWithPressedState(mode) {
 applyTime = function applyTimeWithPressedState(mode) {
   qualityBaseApplyTime(mode);
   syncButtonPressedStates();
+};
+
+createAttemptMarker = function createTrackedAttemptMarker(item) {
+  const before = new Set(scene.children);
+  qualityBaseCreateAttemptMarker(item);
+  const added = scene.children.filter((child) => !before.has(child));
+  if (added.length) qualityAttemptMarkers.unshift(added);
+};
+
+recordAttempt = function recordAttemptSafely(type, airspeed, note) {
+  const item = {
+    type,
+    note,
+    speed: Math.round(airspeed * 1.94384),
+    x: Math.round(aircraft.pos.x),
+    y: Math.round(terrainHeight(aircraft.pos.x, aircraft.pos.z) + 3),
+    z: Math.round(aircraft.pos.z),
+    stamp: new Date().toISOString()
+  };
+  attempts.unshift(item);
+  while (attempts.length > 36) {
+    attempts.pop();
+    removeAttemptMarkerGroup(qualityAttemptMarkers.pop());
+  }
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(attempts));
+  } catch (error) {
+    ui.message.textContent = 'Attempt saved for this session, but browser storage is unavailable.';
+  }
+  createAttemptMarker(item);
+  updateAttemptPanel();
 };
 
 updateCursorAim = function updateHeadingOnlyCursorAim(event) {
@@ -97,11 +130,67 @@ function installQualityFixes() {
   }
   if (ui.start) ui.start.setAttribute('aria-describedby', 'launchHint');
 
+  installClearAttemptsButton();
   document.addEventListener('keydown', stopFlightKeysFromControls);
   document.addEventListener('keyup', stopFlightKeysFromControls);
   document.addEventListener('pointermove', stopCursorAimFromControls);
   installQualityStyles();
   syncButtonPressedStates();
+}
+
+function installClearAttemptsButton() {
+  const panel = document.querySelector('.attempts');
+  const title = panel ? panel.querySelector('h2') : null;
+  if (!panel || !title || document.getElementById('clearAttempts')) return;
+  const button = document.createElement('button');
+  button.id = 'clearAttempts';
+  button.className = 'icon-button clear-attempts-button';
+  button.type = 'button';
+  button.textContent = 'Clear';
+  button.setAttribute('aria-label', 'Clear persistent attempts');
+  button.addEventListener('click', clearAttempts);
+  title.insertAdjacentElement('afterend', button);
+}
+
+function clearAttempts() {
+  attempts.length = 0;
+  qualityAttemptMarkers.splice(0).forEach(removeAttemptMarkerGroup);
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (error) {
+    ui.message.textContent = 'Attempts cleared for this session, but browser storage is unavailable.';
+  }
+  updateAttemptPanel();
+  ui.message.textContent = 'Persistent attempts cleared.';
+}
+
+function removeAttemptMarkerGroup(group) {
+  if (!group) return;
+  group.forEach((object) => {
+    scene.remove(object);
+    removeFromArray(fireGroups, object);
+    if (typeof effectGroups !== 'undefined') {
+      for (let i = effectGroups.length - 1; i >= 0; i--) {
+        if (effectGroups[i].group === object) effectGroups.splice(i, 1);
+      }
+    }
+    disposeTrackedObject(object);
+  });
+}
+
+function disposeTrackedObject(object) {
+  object.traverse((child) => {
+    if (child.geometry) child.geometry.dispose();
+    if (child.material) {
+      const materials = Array.isArray(child.material) ? child.material : [child.material];
+      materials.forEach((material) => material.dispose());
+    }
+  });
+}
+
+function removeFromArray(items, value) {
+  const index = items.indexOf(value);
+  if (index >= 0) items.splice(index, 1);
 }
 
 function stopFlightKeysFromControls(event) {
@@ -115,7 +204,7 @@ function stopCursorAimFromControls(event) {
 }
 
 function isFlightUiTarget(target) {
-  if (!target || target === canvas) return false;
+  if (!target || target === canvas || typeof target.closest !== 'function') return false;
   return Boolean(target.closest('button, input, select, textarea, [role="button"], [role="slider"], .panel, .launch, .keyboard'));
 }
 
@@ -158,6 +247,12 @@ function installQualityStyles() {
     }
     .cursor-reticle::after {
       display: none;
+    }
+    .clear-attempts-button {
+      min-height: 28px;
+      margin: 0 0 10px;
+      padding: 0 10px;
+      font-size: 12px;
     }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
