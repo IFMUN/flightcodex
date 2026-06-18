@@ -1,14 +1,21 @@
 const STARTING_THRUST = 0.82;
+const CURSOR_PITCH_COMMAND_LIMIT = 0.055;
+const CURSOR_DIRECTION_PITCH_ASSIST = 0.012;
+const CURSOR_TERRAIN_PITCH_ASSIST = 0.026;
 let pilotModeChosen = false;
 let selectedThrottle = STARTING_THRUST;
+let cursorHeldPitch = 0.035;
 
 const baseEnsureHudAdditions = ensureHudAdditions;
 const baseResetAircraft = resetAircraft;
 const baseUpdateHud = updateHud;
 
 setPilotMode = function setPilotModeWithSelection(mode, silent = false, choose = false) {
-  pilotMode = mode === 'keyboard' ? 'keyboard' : 'cursor';
+  const nextMode = mode === 'keyboard' ? 'keyboard' : 'cursor';
+  const enteringCursor = nextMode === 'cursor' && (pilotMode !== 'cursor' || choose || started);
+  pilotMode = nextMode;
   if (choose) pilotModeChosen = true;
+  if (enteringCursor) captureCursorPitch();
 
   const label = pilotModeLabel();
   if (ui.pilotModeLabel) ui.pilotModeLabel.textContent = pilotModeChosen ? label : 'Select';
@@ -22,7 +29,7 @@ setPilotMode = function setPilotModeWithSelection(mode, silent = false, choose =
 
   if (!silent && ui.message) {
     ui.message.textContent = pilotMode === 'cursor'
-      ? 'Cursor mode selected. Point left or right to choose heading; pitch stays stabilized by trim.'
+      ? 'Cursor mode selected. Pointer height cannot command pitch; horizontal aim changes heading only.'
       : 'Full keyboard selected. Arrow keys pitch and roll, A/D controls rudder.';
   }
 };
@@ -37,12 +44,13 @@ launch = function launchWithPreflightSelection() {
   started = true;
   selectedThrottle = THREE.MathUtils.clamp(selectedThrottle, 0, 1);
   aircraft.throttle = selectedThrottle;
+  if (pilotMode === 'cursor') captureCursorPitch();
   syncThrottleControls(aircraft.throttle);
   ui.launch.classList.add('hidden');
   ui.hud.classList.add('active');
   setPilotMode(pilotMode, true, false);
   ui.message.textContent = pilotMode === 'cursor'
-    ? 'Cursor flight live. Point left or right for heading; set thrust with the slider or W/S.'
+    ? 'Cursor flight live. Horizontal pointer aim changes heading; pitch is locked except tiny protection nudges.'
     : 'Full keyboard flight live. Set thrust with the slider or W/S.';
 };
 
@@ -90,6 +98,7 @@ bindInput = function bindInputWithPreflightControls() {
 resetAircraft = function resetAircraftWithSelectedThrottle(first) {
   baseResetAircraft(first);
   aircraft.throttle = selectedThrottle;
+  if (pilotMode === 'cursor') captureCursorPitch();
   syncThrottleControls(aircraft.throttle);
   setPilotMode(pilotMode, true, false);
 };
@@ -115,39 +124,121 @@ readControls = function readControlsHeadingOnlyCursor(dt) {
   const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(aircraft.quat).normalize();
   const up = new THREE.Vector3(0, 1, 0).applyQuaternion(aircraft.quat).normalize();
   const right = new THREE.Vector3(1, 0, 0).applyQuaternion(aircraft.quat).normalize();
+  const pitchNow = Math.asin(THREE.MathUtils.clamp(forward.y, -1, 1));
   const rollNow = Math.atan2(right.y, up.y);
-  let headingError = cursorAim.x * 0.72;
-  const groundPoint = cursorGroundPoint();
-
-  if (groundPoint) {
-    const toTarget = groundPoint.clone().sub(aircraft.pos);
-    toTarget.y = 0;
-    const flatForward = forward.clone();
-    flatForward.y = 0;
-    if (toTarget.lengthSq() > 400 && flatForward.lengthSq() > 0.001) {
-      toTarget.normalize();
-      flatForward.normalize();
-      const cross = flatForward.x * toTarget.z - flatForward.z * toTarget.x;
-      const dot = THREE.MathUtils.clamp(flatForward.dot(toTarget), -1, 1);
-      headingError = THREE.MathUtils.clamp(Math.atan2(cross, dot), -1.05, 1.05);
-    }
-  }
-
-  headingError = applyInputDeadzone(headingError, 0.035);
-  const targetRoll = THREE.MathUtils.clamp(headingError * 0.86 + cursorAim.x * 0.08, -0.56, 0.56);
+  const headingError = applyInputDeadzone(cursorAim.active ? cursorAim.x : 0, 0.035);
+  const targetRoll = THREE.MathUtils.clamp(headingError * 0.62, -0.52, 0.52);
   const rollCommand = THREE.MathUtils.clamp((targetRoll - rollNow) * 2.65 - aircraft.angular.z * 0.64, -1, 1);
   const yawCommand = THREE.MathUtils.clamp(headingError * 0.45 - aircraft.angular.y * 0.34, -0.62, 0.62);
+  const clearance = aircraft.pos.y - terrainHeight(aircraft.pos.x, aircraft.pos.z);
+  const directionPitchAssist = Math.min(CURSOR_DIRECTION_PITCH_ASSIST, Math.abs(targetRoll) * 0.022);
+  const terrainPitchAssist = clearance < 220 ? THREE.MathUtils.clamp((220 - clearance) * 0.00014, 0, CURSOR_TERRAIN_PITCH_ASSIST) : 0;
+  const targetPitch = THREE.MathUtils.clamp(
+    cursorHeldPitch + directionPitchAssist + terrainPitchAssist,
+    cursorHeldPitch - 0.01,
+    cursorHeldPitch + CURSOR_DIRECTION_PITCH_ASSIST + CURSOR_TERRAIN_PITCH_ASSIST
+  );
+  const pitchCommand = THREE.MathUtils.clamp((targetPitch - pitchNow) * 1.15 - aircraft.angular.x * 0.32, -CURSOR_PITCH_COMMAND_LIMIT, CURSOR_PITCH_COMMAND_LIMIT);
 
-  aircraft.controls.pitch = smoothControl(aircraft.controls.pitch, 0, dt, 6.2);
+  aircraft.controls.pitch = smoothControl(aircraft.controls.pitch, pitchCommand, dt, 6.2);
   aircraft.controls.roll = smoothControl(aircraft.controls.roll, rollCommand, dt, 7.4);
   aircraft.controls.yaw = smoothControl(aircraft.controls.yaw, yawCommand, dt, 5.8);
+};
+
+updateAircraft = function updateAircraftWithoutCursorPitchLeveler(dt, t) {
+  if (!aircraft.alive) {
+    updateAircraftModel(t, 0, 0, 0);
+    return;
+  }
+
+  readControls(dt);
+
+  const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(aircraft.quat).normalize();
+  const up = new THREE.Vector3(0, 1, 0).applyQuaternion(aircraft.quat).normalize();
+  const right = new THREE.Vector3(1, 0, 0).applyQuaternion(aircraft.quat).normalize();
+  const wind = currentWind(t, aircraft.pos);
+  const airVel = tmp.v1.copy(aircraft.vel).sub(wind);
+  const airspeed = Math.max(0.1, airVel.length());
+  const horizontal = Math.max(1, Math.sqrt(aircraft.vel.x * aircraft.vel.x + aircraft.vel.z * aircraft.vel.z));
+  const flightPath = Math.atan2(aircraft.vel.y, horizontal);
+  const pitch = Math.asin(THREE.MathUtils.clamp(forward.y, -1, 1));
+  const roll = Math.atan2(right.y, up.y);
+  const alpha = THREE.MathUtils.clamp(pitch - flightPath + aircraft.flaps * 0.08 + aircraft.trim, -0.28, 0.36);
+  const damage = damageTotal();
+  const leftWingDamage = aircraft.damage.leftWing;
+  const rightWingDamage = aircraft.damage.rightWing;
+  const tailHealth = 1 - Math.min(0.72, aircraft.damage.tail * 0.68);
+  const leftEngineHealth = 1 - Math.min(0.82, aircraft.damage.leftEngine * 0.72);
+  const rightEngineHealth = 1 - Math.min(0.82, aircraft.damage.rightEngine * 0.72);
+  const gearDrag = aircraft.gear * (0.018 + aircraft.damage.gear * 0.025);
+  const rho = densityAtAltitude(Math.max(0, aircraft.pos.y - 1100));
+  const q = 0.5 * rho * airspeed * airspeed;
+  const stall = smoothstep(0.28, 0.42, Math.abs(alpha)) * smoothstep(66, 42, airspeed);
+  const liftHealth = 1 - Math.min(0.52, leftWingDamage * 0.22 + rightWingDamage * 0.22 + aircraft.damage.hull * 0.08 + aircraft.damage.tail * 0.1);
+  const cl = THREE.MathUtils.clamp(0.42 + 4.2 * alpha + 0.72 * aircraft.flaps, -0.55, 1.9) * liftHealth;
+  const cd = 0.024 + 0.039 * cl * cl + gearDrag + aircraft.flaps * 0.026 + aircraft.damage.hull * 0.05 + stall * 0.16;
+  const liftMag = q * aircraft.wingArea * cl * (1 - stall * 0.38);
+  const dragMag = q * aircraft.wingArea * cd;
+  const thrustLeft = aircraft.throttle * aircraft.maxThrust * 0.5 * leftEngineHealth;
+  const thrustRight = aircraft.throttle * aircraft.maxThrust * 0.5 * rightEngineHealth;
+  const thrustMag = (thrustLeft + thrustRight) * (1 - Math.min(0.2, Math.max(0, aircraft.pos.y - 1300) / 17000));
+
+  const liftDir = tmp.v2.copy(up).addScaledVector(right, -right.dot(airVel) / Math.max(airspeed, 1) * 0.12).normalize();
+  const dragDir = tmp.v3.copy(airVel).multiplyScalar(-1).normalize();
+  const force = new THREE.Vector3(0, -aircraft.mass * 9.80665, 0);
+  force.addScaledVector(forward, thrustMag);
+  force.addScaledVector(liftDir, liftMag);
+  force.addScaledVector(dragDir, dragMag);
+  force.y -= aircraft.mass * 1.85 * Math.max(0, damage - 0.35);
+
+  if (aircraft.brakes > 0 && isRunway(aircraft.pos.x, aircraft.pos.z) && onGround()) {
+    force.addScaledVector(forward, -aircraft.brakes * 220000 * Math.sign(Math.max(0.1, aircraft.vel.dot(forward))));
+  }
+
+  const accel = force.multiplyScalar(1 / aircraft.mass);
+  aircraft.vel.addScaledVector(accel, dt);
+  aircraft.pos.addScaledVector(aircraft.vel, dt);
+
+  const authority = THREE.MathUtils.clamp((airspeed - 42) / 118, 0.35, 1.45);
+  const pitchInput = aircraft.controls.pitch;
+  const rollInput = aircraft.controls.roll;
+  const yawInput = aircraft.controls.yaw;
+  aircraft.angular.x += pitchInput * dt * 1.24 * authority * tailHealth;
+  aircraft.angular.z += -rollInput * dt * 1.36 * authority * (1 - Math.min(0.55, (leftWingDamage + rightWingDamage) * 0.24));
+  aircraft.angular.y += -yawInput * dt * 0.62 * authority * tailHealth;
+
+  const asymEngine = (thrustLeft - thrustRight) / Math.max(aircraft.maxThrust, 1);
+  const asymWing = (rightWingDamage - leftWingDamage) * 0.42;
+  aircraft.angular.y += asymEngine * dt * 0.46;
+  aircraft.angular.z += (asymWing - asymEngine * 0.28) * dt * (0.85 + airspeed / 180);
+
+  if (Math.abs(rollInput) < 0.04) aircraft.angular.z += -roll * dt * 0.52;
+  if (pilotMode !== 'cursor' && Math.abs(pitchInput) < 0.04) aircraft.angular.x += (0.035 - pitch) * dt * 0.33 * tailHealth;
+  aircraft.angular.x += -aircraft.angular.x * dt * 0.86;
+  aircraft.angular.y += -aircraft.angular.y * dt * 0.72;
+  aircraft.angular.z += -aircraft.angular.z * dt * 0.82;
+  if (stall > 0.18) {
+    aircraft.angular.z += Math.sin(t * 7.1) * stall * dt * 0.55;
+    aircraft.angular.x -= stall * dt * 0.3;
+  }
+
+  const deltaQ = tmp.q1.setFromEuler(tmp.e1.set(aircraft.angular.x * dt, aircraft.angular.y * dt, aircraft.angular.z * dt, 'XYZ'));
+  aircraft.quat.multiply(deltaQ).normalize();
+  aircraft.flaps += (aircraft.flapsTarget - aircraft.flaps) * Math.min(1, dt * 1.5);
+  aircraft.gear += (aircraft.gearTarget - aircraft.gear) * Math.min(1, dt * 0.75);
+  updateAircraftModel(t, pitchInput, rollInput, yawInput);
+  updateSmoke(dt, t, forward);
+  handleGroundContact(airspeed, forward, roll);
+  aircraft.group.position.copy(aircraft.pos);
+  aircraft.group.quaternion.copy(aircraft.quat);
+  aircraft.group.visible = aircraft.alive;
 };
 
 updateHud = function updateHudWithControlState() {
   baseUpdateHud();
   if (ui.pilotModeLabel) ui.pilotModeLabel.textContent = pilotModeChosen ? pilotModeLabel() : 'Select';
   syncThrottleControls(aircraft.throttle);
-  const modeLabel = pilotModeChosen ? (pilotMode === 'cursor' ? 'cursor heading' : 'full keyboard') : 'select mode';
+  const modeLabel = pilotModeChosen ? (pilotMode === 'cursor' ? 'cursor heading only' : 'full keyboard') : 'select mode';
   ui.readout.textContent = `${Math.max(1, Math.round(1000 / frameAverage))} fps | ${cameraModeName()} | ${modeLabel} | trim ${aircraft.trim.toFixed(2)} | damage ${Math.round(damageTotal() * 100)}%`;
 };
 
@@ -272,6 +363,15 @@ function syncLaunchState() {
     ui.start.disabled = !pilotModeChosen;
     ui.start.textContent = pilotModeChosen ? 'Open Flight Scene' : 'Select Pilot Mode';
   }
+}
+
+function captureCursorPitch() {
+  cursorHeldPitch = THREE.MathUtils.clamp(currentAircraftPitch(), -0.08, 0.12);
+}
+
+function currentAircraftPitch() {
+  const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(aircraft.quat).normalize();
+  return Math.asin(THREE.MathUtils.clamp(forward.y, -1, 1));
 }
 
 function pilotModeLabel() {
