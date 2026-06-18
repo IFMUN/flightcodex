@@ -10,10 +10,13 @@ A self-contained browser flight scene for a Yosemite-scale valley simulation. It
 - Procedural forest classification with a 266,000-tree cinematic mode and a lighter balanced mode.
 - More detailed 737 MAX 9-scale aircraft geometry with passenger windows, cockpit glazing, doors, winglets, flaps, slats, fan blades, nacelles, animated gear, nav lights, and damage marks.
 - Preflight pilot selection for Cursor or Full Keyboard before the aircraft starts flying.
-- Cursor pilot mode uses horizontal pointer aim for heading only; pointer height is banned from pitch control.
-- Cursor turns include only a tiny non-directional pitch hold/protection assist, so direction changes do not rely on climbing or diving.
+- Cursor pilot mode is a guarded heading autopilot: horizontal pointer aim turns the aircraft, while pitch, roll, yaw rate, and spin are clamped by stability protection.
+- Cursor pointer height is banned from pitch control, and direction changes rely on capped heading-rate steering rather than climbing or diving.
+- A horizontal heading cue replaces the old free 2D cursor reticle so Cursor mode matches what the aircraft actually follows.
 - A thrust slider with an 82% starting thrust, plus keyboard throttle controls for in-flight adjustments.
 - Keyboard-paired elevator, aileron, rudder, flaps, trim, brakes, camera modes, time of day, weather, and landing gear.
+- Defensive startup and storage handling for saved attempts, plus a Clear Attempts control for persistent attempt markers.
+- Accessibility and control-state improvements: inactive HUD controls are hidden from focus, status messages are announced, focused controls keep their native keyboard behavior, and reduced-motion preferences are respected.
 - A more forgiving fly-by-wire assist so the aircraft starts higher, steadier, and less prone to immediate terrain impact.
 - Dynamic sky states from dawn through night.
 - Weather modes for clear air, snow, aurora, storm, lightning, and hurricane-force winds.
@@ -23,7 +26,7 @@ A self-contained browser flight scene for a Yosemite-scale valley simulation. It
 - Persistent crash fires and landing markers saved in browser local storage so previous attempts remain visible when another airframe is spawned.
 - Enhanced crash effects with fireballs, expanding shock rings, debris bursts, smoke, scorch marks, and persistent burn sites.
 - Glass/liquid HUD surfaces using backdrop filtering, refractive highlights, animated sweep layers, and a corner airframe damage schematic.
-- A clean override loader that keeps the simulator patch in `src/app-overrides.js` instead of embedding a large fragile script string inside `src/app.js`.
+- A clean override loader that keeps simulator patches in separate `src/*.js` files instead of embedding large fragile script strings inside `src/app.js`.
 
 ## Controls
 
@@ -42,6 +45,7 @@ A self-contained browser flight scene for a Yosemite-scale valley simulation. It
 | [ / ] | Pitch trim |
 | B or Space | Brakes |
 | R | Spawn another airframe |
+| Clear Attempts | Remove persistent attempt history and scene markers |
 | C | Camera mode |
 | T | Time of day cycle |
 | M | Weather cycle |
