@@ -32,6 +32,13 @@ source = source.replace(
   '[' + ['nose', 'hull', 'leftWing', 'rightWing', 'leftEngine', 'rightEngine', 'tail', 'gear'].map((part) => `'${part}'`).join(', ') + '].forEach((part) => {'
 );
 
+const attemptsLoaderPoint = "function loadAttempts() {\n  try {\n    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');\n  } catch {\n    return [];\n  }\n}";
+if (!source.includes(attemptsLoaderPoint)) throw new Error('Unable to install attempts loader patch');
+source = source.replace(
+  attemptsLoaderPoint,
+  "function loadAttempts() {\n  try {\n    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');\n    return Array.isArray(stored) ? stored.slice(0, 36) : [];\n  } catch {\n    return [];\n  }\n}"
+);
+
 const startupPoint = '\ninit();\n';
 if (!source.includes(startupPoint)) throw new Error('Unable to install simulator overrides');
 source = source.replace(startupPoint, `\n${overrides}\n${controlUpdates}\n${cursorAutopilot}\n${qualityFixes}\ninit();\n`);
