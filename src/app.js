@@ -1,16 +1,19 @@
-const [coreResponse, overridesResponse, controlUpdatesResponse] = await Promise.all([
+const [coreResponse, overridesResponse, controlUpdatesResponse, cursorAutopilotResponse] = await Promise.all([
   fetch('./src/app-core.js', { cache: 'no-store' }),
   fetch('./src/app-overrides.js', { cache: 'no-store' }),
-  fetch('./src/flight-control-updates.js', { cache: 'no-store' })
+  fetch('./src/flight-control-updates.js', { cache: 'no-store' }),
+  fetch('./src/cursor-autopilot.js', { cache: 'no-store' })
 ]);
 
 if (!coreResponse.ok) throw new Error('Unable to load simulator core');
 if (!overridesResponse.ok) throw new Error('Unable to load simulator overrides');
 if (!controlUpdatesResponse.ok) throw new Error('Unable to load flight control updates');
+if (!cursorAutopilotResponse.ok) throw new Error('Unable to load cursor autopilot');
 
 let source = await coreResponse.text();
 const overrides = await overridesResponse.text();
 const controlUpdates = await controlUpdatesResponse.text();
+const cursorAutopilot = await cursorAutopilotResponse.text();
 
 source = source.replace(
   "import * as THREE from 'three';",
@@ -24,7 +27,7 @@ source = source.replace(
 
 const startupPoint = '\ninit();\n';
 if (!source.includes(startupPoint)) throw new Error('Unable to install simulator overrides');
-source = source.replace(startupPoint, `\n${overrides}\n${controlUpdates}\ninit();\n`);
+source = source.replace(startupPoint, `\n${overrides}\n${controlUpdates}\n${cursorAutopilot}\ninit();\n`);
 
 const moduleUrl = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
 await import(moduleUrl);
