@@ -9,8 +9,10 @@ A self-contained browser flight scene for a Yosemite-scale valley simulation. It
 - Custom animated waterfall shader ribbons with mist and pools.
 - Procedural forest classification with a 266,000-tree cinematic mode and a lighter balanced mode.
 - More detailed 737 MAX 9-scale aircraft geometry with passenger windows, cockpit glazing, doors, winglets, flaps, slats, fan blades, nacelles, animated gear, nav lights, and damage marks.
-- Cursor and Keyboard pilot modes. Cursor mode is the default and steers the airframe toward the pointer with smoother bank, yaw, pitch, terrain, and airspeed protection; Keyboard mode keeps the direct arrow-key controls.
-- Keyboard-paired throttle, elevator, aileron, rudder, flaps, trim, brakes, camera modes, time of day, weather, and landing gear.
+- Preflight pilot selection for Cursor or Full Keyboard before the aircraft starts flying.
+- Cursor pilot mode steers heading only by banking and yawing toward the pointer, while pitch remains stabilized by trim instead of pointer height.
+- A thrust slider with an 82% starting thrust, plus keyboard throttle controls for in-flight adjustments.
+- Keyboard-paired elevator, aileron, rudder, flaps, trim, brakes, camera modes, time of day, weather, and landing gear.
 - A more forgiving fly-by-wire assist so the aircraft starts higher, steadier, and less prone to immediate terrain impact.
 - Dynamic sky states from dawn through night.
 - Weather modes for clear air, snow, aurora, storm, lightning, and hurricane-force winds.
@@ -26,13 +28,14 @@ A self-contained browser flight scene for a Yosemite-scale valley simulation. It
 
 | Input | Action |
 | --- | --- |
-| Enter / Open Flight Scene | Start |
-| Pilot selector | Switch Cursor or Keyboard mode |
-| Cursor / pointer | Aim the aircraft in Cursor mode |
+| Pilot selector | Choose Cursor or Full Keyboard before launch |
+| Enter / Open Flight Scene | Start after a pilot mode is selected |
+| Thrust slider | Set starting and in-flight thrust |
 | W / S | Throttle up / down |
-| Arrow up / down | Pitch up / down in Keyboard mode |
-| Arrow left / right | Roll left / right in Keyboard mode |
-| A / D | Rudder yaw in Keyboard mode |
+| Cursor / pointer | Aim heading in Cursor mode without changing pitch |
+| Arrow up / down | Pitch up / down in Full Keyboard mode |
+| Arrow left / right | Roll left / right in Full Keyboard mode |
+| A / D | Rudder yaw in Full Keyboard mode |
 | G | Landing gear handle |
 | F / V | Flaps up / down cycle |
 | [ / ] | Pitch trim |
