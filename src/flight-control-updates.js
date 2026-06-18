@@ -233,12 +233,10 @@ function installHudThrottleControl() {
   control.setAttribute('for', 'hudThrottleRange');
   control.innerHTML = '<span>Thrust</span><input id="hudThrottleRange" data-throttle-range type="range" min="0" max="100" step="1" value="82" /><strong data-throttle-value>82%</strong>';
   throttleStack.insertAdjacentElement('afterend', control);
-
-  const keyboardButton = document.querySelector('[data-pilot-mode="keyboard"]');
-  if (keyboardButton) keyboardButton.textContent = 'Full keyboard';
 }
 
 function refreshFlightControlUi() {
+  document.querySelectorAll('[data-pilot-mode="keyboard"]').forEach((button) => { button.textContent = 'Full keyboard'; });
   ui.launchHint = document.getElementById('launchHint') || document.querySelector('.launch-actions .hint');
   ui.launchPilotModeValue = document.getElementById('launchPilotModeValue');
   ui.pilotModeLabel = document.getElementById('pilotModeValue');
