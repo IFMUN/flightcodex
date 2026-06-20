@@ -1,10 +1,11 @@
-const [coreResponse, overridesResponse, controlUpdatesResponse, cursorAutopilotResponse, qualityFixesResponse, environmentResponse] = await Promise.all([
+const [coreResponse, overridesResponse, controlUpdatesResponse, cursorAutopilotResponse, qualityFixesResponse, environmentResponse, runwayResponse] = await Promise.all([
   fetch('./src/app-core.js', { cache: 'no-store' }),
   fetch('./src/app-overrides.js', { cache: 'no-store' }),
   fetch('./src/flight-control-updates.js', { cache: 'no-store' }),
   fetch('./src/cursor-autopilot.js', { cache: 'no-store' }),
   fetch('./src/quality-fixes.js', { cache: 'no-store' }),
-  fetch('./src/environment-polish.js', { cache: 'no-store' })
+  fetch('./src/environment-polish.js', { cache: 'no-store' }),
+  fetch('./src/runway-approach-polish.js', { cache: 'no-store' })
 ]);
 
 if (!coreResponse.ok) throw new Error('Unable to load simulator core');
@@ -13,6 +14,7 @@ if (!controlUpdatesResponse.ok) throw new Error('Unable to load flight control u
 if (!cursorAutopilotResponse.ok) throw new Error('Unable to load cursor autopilot');
 if (!qualityFixesResponse.ok) throw new Error('Unable to load quality fixes');
 if (!environmentResponse.ok) throw new Error('Unable to load environment polish');
+if (!runwayResponse.ok) throw new Error('Unable to load runway approach polish');
 
 let source = await coreResponse.text();
 const overrides = await overridesResponse.text();
@@ -20,6 +22,7 @@ const controlUpdates = await controlUpdatesResponse.text();
 const cursorAutopilot = await cursorAutopilotResponse.text();
 const qualityFixes = await qualityFixesResponse.text();
 const environmentPolish = await environmentResponse.text();
+const runwayPolish = await runwayResponse.text();
 
 const importPoint = "import * as THREE from 'three';";
 if (!source.includes(importPoint)) throw new Error('Unable to install simulator globals');
@@ -44,7 +47,7 @@ source = source.replace(
 
 const startupPoint = '\ninit();\n';
 if (!source.includes(startupPoint)) throw new Error('Unable to install simulator overrides');
-source = source.replace(startupPoint, `\n${overrides}\n${controlUpdates}\n${cursorAutopilot}\n${qualityFixes}\n${environmentPolish}\ninit();\n`);
+source = source.replace(startupPoint, `\n${overrides}\n${controlUpdates}\n${cursorAutopilot}\n${qualityFixes}\n${environmentPolish}\n${runwayPolish}\ninit();\n`);
 
 const moduleUrl = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
 await import(moduleUrl);
