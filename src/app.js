@@ -1,9 +1,10 @@
-const [coreResponse, overridesResponse, controlUpdatesResponse, cursorAutopilotResponse, qualityFixesResponse, environmentResponse] = await Promise.all([
+const [coreResponse, overridesResponse, controlUpdatesResponse, cursorAutopilotResponse, qualityFixesResponse, precipitationPerformanceResponse, environmentResponse] = await Promise.all([
   fetch('./src/app-core.js', { cache: 'no-store' }),
   fetch('./src/app-overrides.js', { cache: 'no-store' }),
   fetch('./src/flight-control-updates.js', { cache: 'no-store' }),
   fetch('./src/cursor-autopilot.js', { cache: 'no-store' }),
   fetch('./src/quality-fixes.js', { cache: 'no-store' }),
+  fetch('./src/precipitation-performance.js', { cache: 'no-store' }),
   fetch('./src/environment-polish.js', { cache: 'no-store' })
 ]);
 
@@ -12,6 +13,7 @@ if (!overridesResponse.ok) throw new Error('Unable to load simulator overrides')
 if (!controlUpdatesResponse.ok) throw new Error('Unable to load flight control updates');
 if (!cursorAutopilotResponse.ok) throw new Error('Unable to load cursor autopilot');
 if (!qualityFixesResponse.ok) throw new Error('Unable to load quality fixes');
+if (!precipitationPerformanceResponse.ok) throw new Error('Unable to load precipitation performance updates');
 if (!environmentResponse.ok) throw new Error('Unable to load environment polish');
 
 let source = await coreResponse.text();
@@ -19,6 +21,7 @@ const overrides = await overridesResponse.text();
 const controlUpdates = await controlUpdatesResponse.text();
 const cursorAutopilot = await cursorAutopilotResponse.text();
 const qualityFixes = await qualityFixesResponse.text();
+const precipitationPerformance = await precipitationPerformanceResponse.text();
 const environmentPolish = await environmentResponse.text();
 
 const importPoint = "import * as THREE from 'three';";
@@ -44,7 +47,7 @@ source = source.replace(
 
 const startupPoint = '\ninit();\n';
 if (!source.includes(startupPoint)) throw new Error('Unable to install simulator overrides');
-source = source.replace(startupPoint, `\n${overrides}\n${controlUpdates}\n${cursorAutopilot}\n${qualityFixes}\n${environmentPolish}\ninit();\n`);
+source = source.replace(startupPoint, `\n${overrides}\n${controlUpdates}\n${cursorAutopilot}\n${qualityFixes}\n${precipitationPerformance}\n${environmentPolish}\ninit();\n`);
 
 const moduleUrl = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
 await import(moduleUrl);
