@@ -12,9 +12,14 @@ const baseUpdateHud = updateHud;
 
 setPilotMode = function setPilotModeWithSelection(mode, silent = false, choose = false) {
   const nextMode = mode === 'keyboard' ? 'keyboard' : 'cursor';
-  const enteringCursor = nextMode === 'cursor' && (pilotMode !== 'cursor' || choose || started);
+  const modeChanged = pilotMode !== nextMode;
+  const enteringCursor = nextMode === 'cursor' && (modeChanged || choose || started);
   pilotMode = nextMode;
   if (choose) pilotModeChosen = true;
+  if (modeChanged || choose) {
+    releaseFlightInputs();
+    resetCursorSteering();
+  }
   if (enteringCursor) captureCursorPitch();
 
   const label = pilotModeLabel();
@@ -44,7 +49,11 @@ launch = function launchWithPreflightSelection() {
   started = true;
   selectedThrottle = THREE.MathUtils.clamp(selectedThrottle, 0, 1);
   aircraft.throttle = selectedThrottle;
-  if (pilotMode === 'cursor') captureCursorPitch();
+  releaseFlightInputs();
+  if (pilotMode === 'cursor') {
+    resetCursorSteering();
+    captureCursorPitch();
+  }
   syncThrottleControls(aircraft.throttle);
   ui.launch.classList.add('hidden');
   ui.hud.classList.add('active');
@@ -58,11 +67,16 @@ bindInput = function bindInputWithPreflightControls() {
   refreshFlightControlUi();
   window.addEventListener('resize', onResize);
   window.addEventListener('pointermove', updateCursorAim, { passive: true });
-  window.addEventListener('pointerleave', () => { cursorAim.active = false; });
+  window.addEventListener('pointerleave', resetCursorSteering);
+  window.addEventListener('blur', releaseAllFlightInputs);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') releaseAllFlightInputs();
+  });
   window.addEventListener('keydown', (event) => {
+    if (isNativeControlTarget(event.target)) return;
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(event.code)) event.preventDefault();
-    keys.add(event.code);
     if (event.repeat) return;
+    keys.add(event.code);
     if (event.code === 'Enter' && !started) launch();
     if (event.code === 'KeyG') aircraft.gearTarget = aircraft.gearTarget > 0.5 ? 0 : 1;
     if (event.code === 'KeyF') aircraft.flapsTarget = Math.min(1, aircraft.flapsTarget + 0.25);
@@ -293,4 +307,32 @@ function applyInputDeadzone(value, deadzone) {
   const magnitude = Math.abs(value);
   if (magnitude <= deadzone) return 0;
   return Math.sign(value) * ((magnitude - deadzone) / (1 - deadzone));
+}
+
+function isNativeControlTarget(target) {
+  return target instanceof Element && Boolean(target.closest(
+    'button, input, select, textarea, a[href], [contenteditable="true"], [role="button"]'
+  ));
+}
+
+function releaseFlightInputs() {
+  keys.clear();
+  aircraft.brakes = 0;
+  aircraft.controls.pitch = 0;
+  aircraft.controls.roll = 0;
+  aircraft.controls.yaw = 0;
+}
+
+function resetCursorSteering() {
+  cursorAim.active = false;
+  cursorAim.x = 0;
+  cursorAim.y = 0;
+  cursorAim.screenX = window.innerWidth * 0.5;
+  cursorAim.screenY = window.innerHeight * 0.44;
+  moveCursorReticle(cursorAim.screenX, cursorAim.screenY);
+}
+
+function releaseAllFlightInputs() {
+  releaseFlightInputs();
+  resetCursorSteering();
 }
